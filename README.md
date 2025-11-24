@@ -17,6 +17,14 @@
   </a>
 </p>
 
+
+---
+
+## 📷 Screenshot
+
+<img width="1919" height="904" alt="Screenshot 2025-11-24 162140" src="https://github.com/user-attachments/assets/c3ed0cbc-d698-4961-8bdc-bece2782aa51" />
+
+
 ---
 
 ## 🌟 Overview
