@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>deepseek chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Puter SDK (for Deepseek models) -->
+  <script src="https://js.puter.com/v2/"></script>
+
+  <!-- Markdown parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Highlight.js for code syntax highlighting -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+  />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    body {
+      @apply bg-slate-950 text-slate-50;
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+    }
+
+    .scroll-thin::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scroll-thin::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .scroll-thin::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.8);
+      border-radius: 999px;
+    }
+
+    .msg-bubble {
+      max-width: 80%;
+      border-radius: 0.75rem;
+      border-width: 1px;
+      border-style: solid;
+      padding: 0.75rem 0.9rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: bubbleIn 0.16s ease-out forwards;
+    }
+
+    .msg-user {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .msg-assistant {
+      background: #020617;
+      border-color: #1f2937;
+    }
+
+    .meta-line {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .copy-message-btn {
+      font-size: 0.65rem;
+      border-radius: 999px;
+      padding: 0.15rem 0.55rem;
+      border-width: 1px;
+      border-style: solid;
+      cursor: pointer;
+    }
+
+    .code-wrapper {
+      position: relative;
+      margin: 0.4rem 0;
+      border-radius: 0.5rem;
+      border: 1px solid #0f172a;
+      overflow: hidden;
+    }
+    .code-wrapper pre {
+      margin: 0;
+    }
+    .copy-code-btn {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+      font-size: 0.65rem;
+      border-radius: 999px;
+      padding: 0.1rem 0.55rem;
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border: 1px solid #020617;
+      cursor: pointer;
+    }
+
+    .typing-dots span {
+      display: inline-block;
+      width: 0.35rem;
+      height: 0.35rem;
+      margin-right: 0.22rem;
+      border-radius: 999px;
+      background: #22c55e;
+      animation: typingDot 1.1s infinite ease-in-out;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.16s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+    @keyframes typingDot {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+      40% { transform: translateY(-3px); opacity: 1; }
+    }
+
+    @keyframes bubbleIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+      .msg-bubble {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="flex flex-col">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+      <div class="flex items-center gap-2">
+        <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-sky-500 to-emerald-400 flex items-center justify-center text-xs font-semibold">
+          d
+        </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold tracking-tight">
+            deepseek
+          </span>
+          <span class="text-[0.65rem] text-slate-400">
+            chat · local session memory
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center text-[0.7rem] text-slate-500">
+          by <span class="ml-1 font-semibold text-slate-200">I-Am-Krishn</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-[0.7rem] text-slate-400">
+            <span>Messages</span>
+            <span id="session-count" class="font-semibold text-sky-400">0</span>
+            <span>/ 100000</span>
+          </div>
+          <button
+            id="connect-btn"
+            class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-100 hover:bg-slate-800"
+          >
+            <span id="connection-dot" class="h-2 w-2 rounded-full bg-red-500"></span>
+            <span id="connection-label">Connect</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="flex-1">
+    <div class="mx-auto flex h-[calc(100vh-3.5rem)] max-w-6xl flex-col md:flex-row">
+      <!-- Chat column -->
+      <section class="flex h-full flex-1 flex-col border-r border-slate-800 bg-slate-950">
+        <!-- model + persona bar -->
+        <div class="border-b border-slate-800 px-4 py-3">
+          <div class="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+            <div class="flex items-center gap-2">
+              <span class="text-[0.7rem] text-slate-400">Model</span>
+              <select
+                id="model-select"
+                class="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 focus:outline-none"
+              >
+                <option value="deepseek-chat">deepseek-chat</option>
+                <option value="deepseek-reasoner">deepseek-reasoner</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="text-[0.7rem] text-slate-400">Persona</span>
+              <select
+                id="persona-select"
+                class="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 focus:outline-none"
+              >
+                <option value="default">Default</option>
+                <option value="senior-dev">Senior dev</option>
+                <option value="teacher">Teacher</option>
+                <option value="pm">Product</option>
+                <option value="prompt-engineer">Prompt engineer</option>
+              </select>
+            </div>
+
+            <div class="flex-1"></div>
+
+            <button
+              id="clear-chat"
+              class="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[0.7rem] text-slate-200 hover:bg-slate-800"
+            >
+              Clear
+            </button>
+            <button
+              id="export-chat"
+              class="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[0.7rem] text-slate-200 hover:bg-slate-800"
+            >
+              Export
+            </button>
+          </div>
+          <div class="mt-2 text-[0.7rem] text-slate-400">
+            <input
+              id="goal-input"
+              type="text"
+              placeholder="Optional session goal (e.g. 'Design a SaaS', 'Learn React hooks')"
+              class="w-full rounded-md border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- messages -->
+        <div id="chat-window" class="scroll-thin flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <!-- messages injected here -->
+        </div>
+
+        <!-- typing / status -->
+        <div class="px-4 pb-2 text-[0.7rem] text-slate-400 flex items-center justify-between">
+          <div id="typing-indicator" class="hidden items-center gap-2">
+            <div class="typing-dots flex items-center">
+              <span></span><span></span><span></span>
+            </div>
+            <span>deepseek is thinking…</span>
+          </div>
+          <div id="status-text" class="ml-auto text-right">
+            Not connected
+          </div>
+        </div>
+
+        <!-- input -->
+        <form id="chat-form" class="border-t border-slate-800 px-4 py-3">
+          <div class="flex items-end gap-2">
+            <textarea
+              id="prompt-input"
+              rows="1"
+              placeholder="Send a message…"
+              class="scroll-thin max-h-40 flex-1 resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
+            ></textarea>
+            <button
+              id="send-btn"
+              type="submit"
+              disabled
+              class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-slate-50 disabled:bg-slate-700"
+            >
+              <svg
+                id="send-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M5 12h14M12 5l7 7-7 7"
+                />
+              </svg>
+              <svg
+                id="send-spinner"
+                class="hidden h-5 w-5 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" />
+                <path class="opacity-75" d="M4 12a8 8 0 018-8" />
+              </svg>
+            </button>
+          </div>
+          <div class="mt-1 text-[0.7rem] text-slate-500">
+            Enter = send · Shift+Enter = new line
+          </div>
+        </form>
+      </section>
+
+      <!-- Insights column -->
+      <aside class="flex h-full w-full max-w-md flex-col bg-slate-950">
+        <div class="flex border-b border-slate-800">
+          <button
+            id="tab-branches"
+            class="flex-1 border-b-2 border-sky-500 px-4 py-3 text-center text-xs font-medium text-slate-100"
+          >
+            Branches
+          </button>
+          <button
+            id="tab-topics"
+            class="flex-1 border-b-2 border-transparent px-4 py-3 text-center text-xs font-medium text-slate-400"
+          >
+            Topic map
+          </button>
+        </div>
+
+        <!-- Branch diagram -->
+        <div
+          id="panel-branches"
+          class="flex-1 overflow-y-auto px-4 py-3 scroll-thin"
+        >
+          <div class="mb-2 text-xs text-slate-400">
+            Visual view of the conversation (user vs assistant).
+          </div>
+          <div class="rounded-lg border border-slate-800 bg-slate-900/60 p-2">
+            <svg
+              id="branch-svg"
+              viewBox="0 0 260 800"
+              class="h-[calc(100vh-11rem)] w-full text-slate-200"
+            >
+              <!-- nodes/edges injected by JS -->
+            </svg>
+          </div>
+        </div>
+
+        <!-- Topic map / mindmap -->
+        <div
+          id="panel-topics"
+          class="hidden flex-1 flex-col overflow-y-auto px-4 py-3 scroll-thin"
+        >
+          <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
+            <span>Generate a topic map from recent messages.</span>
+            <button
+              id="generate-topics"
+              class="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[0.7rem] text-slate-100 hover:bg-slate-800"
+            >
+              Generate
+            </button>
+          </div>
+          <div
+            id="topics-status"
+            class="mb-2 hidden text-[0.75rem] text-slate-400"
+          >
+            Generating with deepseek…
+          </div>
+          <div
+            id="topics-content"
+            class="prose prose-invert max-w-none text-sm"
+          ></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // ===== CONFIG =====
+    const MAX_MESSAGES = 100000;
+    const CONTEXT_MESSAGES = 60;
+    const STORAGE_KEY = 'deepseek_chat_session_v2';
+
+    // ===== STATE =====
+    let messages = []; // {id, role, text, ts}
+    let nextId = 1;
+    let isConnected = false;
+    let isConnecting = false;
+
+    // ===== DOM =====
+    const chatWindow = document.getElementById('chat-window');
+    const sessionCountEl = document.getElementById('session-count');
+    const chatForm = document.getElementById('chat-form');
+    const promptInput = document.getElementById('prompt-input');
+    const sendBtn = document.getElementById('send-btn');
+    const sendIcon = document.getElementById('send-icon');
+    const sendSpinner = document.getElementById('send-spinner');
+    const statusText = document.getElementById('status-text');
+    const modelSelect = document.getElementById('model-select');
+    const personaSelect = document.getElementById('persona-select');
+    const goalInput = document.getElementById('goal-input');
+    const clearBtn = document.getElementById('clear-chat');
+    const exportBtn = document.getElementById('export-chat');
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    const connectBtn = document.getElementById('connect-btn');
+    const connectionDot = document.getElementById('connection-dot');
+    const connectionLabel = document.getElementById('connection-label');
+
+    const tabBranches = document.getElementById('tab-branches');
+    const tabTopics = document.getElementById('tab-topics');
+    const panelBranches = document.getElementById('panel-branches');
+    const panelTopics = document.getElementById('panel-topics');
+    const branchSvg = document.getElementById('branch-svg');
+
+    const generateTopicsBtn = document.getElementById('generate-topics');
+    const topicsStatus = document.getElementById('topics-status');
+    const topicsContent = document.getElementById('topics-content');
+
+    // ===== STORAGE =====
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.messages)) {
+          messages = data.messages;
+          if (messages.length) {
+            nextId = Math.max(...messages.map(m => m.id || 0)) + 1;
+          }
+        }
+        if (data.goal) goalInput.value = data.goal;
+        if (data.persona) personaSelect.value = data.persona;
+      } catch (e) {
+        console.warn('Failed to load session', e);
+      }
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            messages,
+            goal: goalInput.value || '',
+            persona: personaSelect.value,
+          })
+        );
+      } catch (e) {
+        console.warn('Failed to save session', e);
+      }
+    }
+
+    // ===== UTILITIES =====
+    function updateSessionCount() {
+      sessionCountEl.textContent = String(messages.length);
+    }
+
+    function addMessage(role, text, tsOpt) {
+      const ts = tsOpt || Date.now();
+      messages.push({ id: nextId++, role, text, ts });
+      while (messages.length > MAX_MESSAGES) messages.shift();
+      updateSessionCount();
+      saveToStorage();
+      renderBranchDiagram();
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderMarkdown(htmlSource) {
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+      });
+      return marked.parse(htmlSource || '');
+    }
+
+    function enhanceCodeBlocks(container) {
+      const codeEls = container.querySelectorAll('pre code');
+      codeEls.forEach(codeEl => {
+        hljs.highlightElement(codeEl);
+        const pre = codeEl.parentElement;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-wrapper';
+        pre.parentElement.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'copy-code-btn';
+        copyBtn.textContent = 'Copy';
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(codeEl.textContent || '').catch(() => {});
+          copyBtn.textContent = 'Copied';
+          setTimeout(() => (copyBtn.textContent = 'Copy'), 1200);
+        });
+        wrapper.appendChild(copyBtn);
+      });
+    }
+
+    function createMessageElement(msg) {
+      const wrapper = document.createElement('div');
+      wrapper.className =
+        'flex w-full ' +
+        (msg.role === 'user' ? 'justify-end' : 'justify-start');
+
+      const inner = document.createElement('div');
+      inner.className =
+        'flex max-w-[90%] flex-col gap-1 ' +
+        (msg.role === 'user' ? 'items-end' : 'items-start');
+
+      const meta = document.createElement('div');
+      meta.className =
+        'meta-line flex items-center gap-2 text-slate-500';
+      const who = document.createElement('span');
+      who.textContent = msg.role === 'user' ? 'You' : 'deepseek';
+      const time = document.createElement('span');
+      time.textContent = formatTime(msg.ts);
+      meta.appendChild(who);
+      meta.appendChild(time);
+
+      const bubble = document.createElement('div');
+      bubble.className =
+        'msg-bubble border ' +
+        (msg.role === 'user' ? 'msg-user' : 'msg-assistant');
+      bubble.innerHTML = renderMarkdown(msg.text);
+      enhanceCodeBlocks(bubble);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className =
+        'copy-message-btn border border-slate-700 bg-slate-900 text-slate-200';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(msg.text || '').catch(() => {});
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => (copyBtn.textContent = 'Copy'), 1200);
+      });
+
+      inner.appendChild(meta);
+      inner.appendChild(bubble);
+      inner.appendChild(copyBtn);
+      wrapper.appendChild(inner);
+      return wrapper;
+    }
+
+    function renderAllMessages() {
+      chatWindow.innerHTML = '';
+      messages.forEach(msg => {
+        const el = createMessageElement(msg);
+        chatWindow.appendChild(el);
+      });
+      scrollChatToBottom();
+    }
+
+    function scrollChatToBottom() {
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        sendBtn.disabled = true;
+        sendIcon.classList.add('hidden');
+        sendSpinner.classList.remove('hidden');
+        typingIndicator.classList.remove('hidden');
+        statusText.textContent = 'deepseek is responding…';
+      } else {
+        sendSpinner.classList.add('hidden');
+        sendIcon.classList.remove('hidden');
+        typingIndicator.classList.add('hidden');
+        sendBtn.disabled = !isConnected;
+        statusText.textContent = isConnected ? 'Connected' : 'Not connected';
+      }
+    }
+
+    function updateConnectionUI() {
+      if (isConnected) {
+        connectionDot.classList.remove('bg-red-500');
+        connectionDot.classList.add('bg-emerald-400');
+        connectionLabel.textContent = 'Connected';
+        sendBtn.disabled = false;
+      } else {
+        connectionDot.classList.remove('bg-emerald-400');
+        connectionDot.classList.add('bg-red-500');
+        connectionLabel.textContent = 'Connect';
+        sendBtn.disabled = true;
+      }
+    }
+
+    function buildPersonaPrefix() {
+      const persona = personaSelect.value;
+      if (persona === 'senior-dev') {
+        return 'You are a senior software engineer. Be precise, pragmatic and include code when helpful.\n';
+      }
+      if (persona === 'teacher') {
+        return 'You are a patient teacher. Explain concepts clearly with simple examples.\n';
+      }
+      if (persona === 'pm') {
+        return 'You are a product thinker. Focus on user impact, UX and tradeoffs.\n';
+      }
+      if (persona === 'prompt-engineer') {
+        return 'You are an expert prompt engineer. Optimize and refactor prompts.\n';
+      }
+      return '';
+    }
+
+    function buildGoalPrefix() {
+      const goal = (goalInput.value || '').trim();
+      if (!goal) return '';
+      return `The user\'s current session goal is: "${goal}". Align answers with this goal.\n`;
+    }
+
+    function buildContextPrompt(userPrompt) {
+      const persona = buildPersonaPrefix();
+      const goal = buildGoalPrefix();
+      const recent = messages.slice(-CONTEXT_MESSAGES);
+      const lines = [];
+
+      if (persona || goal) {
+        lines.push(persona + goal);
+      }
+      if (recent.length) {
+        lines.push('Conversation so far:');
+        recent.forEach(m => {
+          lines.push((m.role === 'user' ? 'User: ' : 'Assistant: ') + m.text);
+        });
+      }
+      lines.push('User: ' + userPrompt);
+      lines.push('Assistant:');
+      return lines.join('\n');
+    }
+
+    // ===== BRANCH DIAGRAM =====
+    function renderBranchDiagram() {
+      branchSvg.innerHTML = '';
+      const maxShown = 40;
+      const subset = messages.slice(-maxShown);
+      if (!subset.length) return;
+
+      const baseY = 30;
+      const stepY = 18;
+      const userX = 60;
+      const assistantX = 180;
+
+      // edges
+      for (let i = 1; i < subset.length; i++) {
+        const prev = subset[i - 1];
+        const curr = subset[i];
+        const y1 = baseY + (i - 1) * stepY;
+        const y2 = baseY + i * stepY;
+        const x1 = prev.role === 'user' ? userX : assistantX;
+        const x2 = curr.role === 'user' ? userX : assistantX;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const d = `M${x1},${y1} C${x1 + (x2 - x1) / 2},${y1} ${x1 + (x2 - x1) / 2},${y2} ${x2},${y2}`;
+        line.setAttribute('d', d);
+        line.setAttribute('stroke', '#64748b');
+        line.setAttribute('stroke-width', '1.4');
+        line.setAttribute('fill', 'none');
+        branchSvg.appendChild(line);
+      }
+
+      // nodes
+      subset.forEach((m, idx) => {
+        const y = baseY + idx * stepY;
+        const x = m.role === 'user' ? userX : assistantX;
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', '4.5');
+        circle.setAttribute('fill', m.role === 'user' ? '#0ea5e9' : '#22c55e');
+        circle.setAttribute('stroke', '#0f172a');
+        circle.setAttribute('stroke-width', '1.4');
+        branchSvg.appendChild(circle);
+
+        // short label
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', x + (m.role === 'user' ? -10 : 10));
+        label.setAttribute('y', y + 3);
+        label.setAttribute('font-size', '9');
+        label.setAttribute('fill', '#cbd5f5');
+        label.setAttribute('text-anchor', m.role === 'user' ? 'end' : 'start');
+        label.textContent = m.role === 'user' ? 'You' : 'deepseek';
+        branchSvg.appendChild(label);
+      });
+    }
+
+    // ===== TOPIC MAP / MINDMAP =====
+    async function generateTopicMap() {
+      if (!messages.length) {
+        topicsContent.innerHTML = '<p class="text-xs text-slate-500">No messages yet.</p>';
+        return;
+      }
+      if (!isConnected) {
+        alert('Connect first, then generate topic map.');
+        return;
+      }
+
+      topicsStatus.classList.remove('hidden');
+      topicsStatus.textContent = 'Generating topic map with deepseek…';
+      topicsContent.innerHTML = '';
+
+      const recent = messages.slice(-80);
+      const chatText = recent
+        .map(m => (m.role === 'user' ? 'User: ' : 'Assistant: ') + m.text)
+        .join('\n');
+
+      const prompt =
+        'Analyze the following conversation and produce a concise topic map / mindmap in Markdown.' +
+        '\nUse headings and nested bullet lists.' +
+        '\nDo not add any introduction or conclusion text; only the map.' +
+        '\n\nConversation:\n' +
+        chatText;
+
+      const model = modelSelect.value || 'deepseek-reasoner';
+
+      try {
+        const resp = await puter.ai.chat(prompt, {
+          model,
+          stream: true,
+        });
+
+        let text = '';
+        for await (const part of resp) {
+          const chunk = part?.text || '';
+          text += chunk;
+          topicsContent.innerHTML = renderMarkdown(text);
+        }
+        topicsStatus.classList.add('hidden');
+      } catch (e) {
+        console.error(e);
+        topicsStatus.textContent = 'Error generating topic map.';
+      }
+    }
+
+    // ===== CONNECTION =====
+    async function connectDeepseek() {
+      if (isConnected || isConnecting) return;
+      isConnecting = true;
+      statusText.textContent = 'Connecting…';
+      connectBtn.disabled = true;
+
+      try {
+        const resp = await puter.ai.chat('ping', {
+          model: 'deepseek-chat',
+          stream: true,
+        });
+        for await (const _ of resp) {
+          break;
+        }
+        isConnected = true;
+      } catch (e) {
+        console.error('connect error', e);
+        alert('Failed to connect. Make sure popups are allowed and you are logged in.');
+        isConnected = false;
+      } finally {
+        isConnecting = false;
+        connectBtn.disabled = false;
+        updateConnectionUI();
+      }
+    }
+
+    // ===== SEND =====
+    async function handleSend(prompt) {
+      if (!isConnected) {
+        alert('Connect first.');
+        return;
+      }
+      const model = modelSelect.value;
+
+      const contextPrompt = buildContextPrompt(prompt);
+
+      const userTs = Date.now();
+      addMessage('user', prompt, userTs);
+      const userMsg = messages[messages.length - 1];
+      const userEl = createMessageElement(userMsg);
+      chatWindow.appendChild(userEl);
+      scrollChatToBottom();
+
+      const assistantTs = Date.now();
+      addMessage('assistant', '', assistantTs);
+      const assistantMsg = messages[messages.length - 1];
+      const assistantEl = createMessageElement(assistantMsg);
+      const assistantBubble = assistantEl.querySelector('.msg-bubble');
+      assistantBubble.innerHTML = '';
+      chatWindow.appendChild(assistantEl);
+      scrollChatToBottom();
+
+      setLoading(true);
+
+      try {
+        const resp = await puter.ai.chat(contextPrompt, {
+          model,
+          stream: true,
+        });
+
+        let text = '';
+        for await (const part of resp) {
+          const chunk = part?.text || '';
+          if (!chunk) continue;
+          text += chunk;
+          assistantBubble.innerHTML = renderMarkdown(text);
+          enhanceCodeBlocks(assistantBubble);
+          scrollChatToBottom();
+        }
+
+        assistantMsg.text = text;
+        saveToStorage();
+        renderBranchDiagram();
+      } catch (e) {
+        console.error(e);
+        assistantBubble.textContent =
+          'Error: ' + (e?.message || String(e));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ===== EVENTS =====
+    connectBtn.addEventListener('click', connectDeepseek);
+
+    chatForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+      promptInput.value = '';
+      handleSend(prompt);
+    });
+
+    promptInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.requestSubmit();
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      messages = [];
+      nextId = 1;
+      chatWindow.innerHTML = '';
+      branchSvg.innerHTML = '';
+      updateSessionCount();
+      saveToStorage();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (!messages.length) {
+        alert('No messages to export.');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(messages, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'deepseek-chat-session.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    personaSelect.addEventListener('change', saveToStorage);
+    goalInput.addEventListener('change', saveToStorage);
+
+    tabBranches.addEventListener('click', () => {
+      tabBranches.classList.add('border-sky-500', 'text-slate-100');
+      tabBranches.classList.remove('text-slate-400');
+      tabTopics.classList.remove('border-sky-500');
+      tabTopics.classList.add('text-slate-400');
+      panelBranches.classList.remove('hidden');
+      panelTopics.classList.add('hidden');
+    });
+
+    tabTopics.addEventListener('click', () => {
+      tabTopics.classList.add('border-sky-500', 'text-slate-100');
+      tabTopics.classList.remove('text-slate-400');
+      tabBranches.classList.remove('border-sky-500');
+      tabBranches.classList.add('text-slate-400');
+      panelTopics.classList.remove('hidden');
+      panelBranches.classList.add('hidden');
+    });
+
+    generateTopicsBtn.addEventListener('click', generateTopicMap);
+
+    // ===== INIT =====
+    loadFromStorage();
+    updateSessionCount();
+    renderAllMessages();
+    renderBranchDiagram();
+    updateConnectionUI();
+  </script>
+</body>
+</html>
