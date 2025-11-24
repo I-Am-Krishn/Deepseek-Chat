@@ -1,31 +1,41 @@
 # Deepseek Chat
 
-Deepseek Chat is a modern, fast, and fully client-side AI chat interface inspired by ChatGPT and Gemini UI patterns.  
-It supports ultra-long conversation memory (up to 100,000 messages per session), automatic Markdown formatting,  
-colorful code blocks, message tools, and a real-time branch diagram that visualizes your entire conversation structure.
+[![Live Demo](https://img.shields.io/badge/demo-online-brightgreen?style=for-the-badge&logo=github)](https://I-Am-Krishn.github.io/Deepseek-Chat/)
+[![GitHub Stars](https://img.shields.io/github/stars/I-Am-Krishn/Deepseek-Chat?style=for-the-badge)](https://github.com/I-Am-Krishn/Deepseek-Chat/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/I-Am-Krishn/Deepseek-Chat?style=for-the-badge)](https://github.com/I-Am-Krishn/Deepseek-Chat/issues)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
+[![Built with HTML](https://img.shields.io/badge/built%20with-HTML%20%26%20JS-orange?style=for-the-badge&logo=html5)](https://github.com/I-Am-Krishn/Deepseek-Chat/)
 
-The app runs entirely in the browser and communicates directly with Deepseek models through the Puter AI SDK.  
-No backend, no server hosting, no database — everything is local, secure, and fast.
+Deepseek Chat is a modern, fast, fully client-side AI chat interface inspired by ChatGPT and Gemini.
 
-### ✨ Features
-- Clean ChatGPT/Gemini-like UI  
-- Real-time streaming responses  
-- 100,000-message session memory  
-- Local persistent history (`localStorage`)  
-- Branch diagram (conversation graph)  
-- AI-generated topic map / mindmap  
-- Persona modes (default, senior dev, teacher, PM, prompt engineer)  
-- Auto-formatted Markdown  
-- Colorful code highlighting  
-- One-click copy (message + code blocks)  
-- Goal-aligned responses  
-- Works instantly on GitHub Pages  
-- Mobile-friendly responsive layout  
+It supports ultra-long conversation memory (up to **100,000 messages per session**), automatic Markdown formatting, colorful code blocks, message copy tools, and a real-time branch diagram that visualizes the structure of your conversation. There’s also a topic-map / mind-map view that summarizes recent messages into a clean hierarchical outline.
 
-### 🚀 Deployment
-Just upload the `index.html` file and enable GitHub Pages.  
-Everything is static — no backend required.
+Everything runs in the browser — no custom backend or database is required.
 
-### 📌 Author
-Created by **I-Am-Krishn**
+---
 
+## ✨ Features
+
+- ChatGPT / Gemini-style clean layout  
+- Real-time streaming responses from Deepseek models  
+- Up to **100,000** messages per session  
+- Local persistent history using `localStorage`  
+- Branch diagram view (user vs assistant nodes)  
+- AI-generated topic map / mindmap panel  
+- Persona presets (Default, Senior Dev, Teacher, Product, Prompt Engineer)  
+- Optional session goal to guide responses  
+- Automatic Markdown rendering  
+- Colorful syntax-highlighted code blocks  
+- One-click copy for messages and code blocks  
+- Mobile-friendly responsive UI  
+- Pure frontend — works perfectly on GitHub Pages
+
+---
+
+## 🚀 Deployment
+
+1. Clone the repo:
+
+```bash
+git clone https://github.com/I-Am-Krishn/Deepseek-Chat.git
+cd Deepseek-Chat
