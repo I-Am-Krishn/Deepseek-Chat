@@ -5,6 +5,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/I-Am-Krishn/Deepseek-Chat?style=for-the-badge)](https://github.com/I-Am-Krishn/Deepseek-Chat/issues)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![Built with HTML](https://img.shields.io/badge/built%20with-HTML%20%26%20JS-orange?style=for-the-badge&logo=html5)](https://github.com/I-Am-Krishn/Deepseek-Chat/)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?logo=ko-fi&logoColor=white&style=for-the-badge)]([https://github.com/I-Am-Krishn/Deepseek-Chat/](https://ko-fi.com/iamkrishn))
 
 Deepseek Chat is a modern, fast, fully client-side AI chat interface inspired by ChatGPT and Gemini.
 
